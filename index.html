@@ -1,163 +1,89 @@
-<!DOCTYPE html>
-<html lang="pt-br">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Study AI</title>
+import { useState, useEffect } from "react";
+import { motion } from "framer-motion";
 
-<link rel="manifest" href="manifest.json">
-
-<style>
-body {
-  margin:0;
-  font-family: Arial;
-  background: radial-gradient(circle at top,#020617,#000);
-  color:white;
-}
-.container {max-width:1000px;margin:auto;padding:20px}
-.card {
-  background:rgba(255,255,255,0.05);
-  padding:20px;
-  border-radius:15px;
-  margin-bottom:20px;
-}
-button {
-  background:#6366f1;
-  border:none;
-  color:white;
-  padding:6px 10px;
-  border-radius:8px;
-  cursor:pointer;
-}
-.progress-bar {
-  height:10px;
-  background:#111;
-  border-radius:10px;
-}
-.progress {
-  height:100%;
-  background:#22c55e;
-  width:0%;
-}
-.item {display:flex;justify-content:space-between;margin:5px 0}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-<h1>🚀 Study AI</h1>
-
-<div class="progress-bar"><div id="progress" class="progress"></div></div>
-<p id="stats"></p>
-
-<div id="content"></div>
-
-<div class="card">
-<h2>🧠 Quiz</h2>
-<p id="quiz">Clique abaixo</p>
-<button onclick="quiz()">Gerar</button>
-</div>
-
-<div class="card">
-<h2>🎧 Player YouTube</h2>
-<input id="yt" placeholder="Cole link do YouTube">
-<button onclick="loadYT()">Carregar</button>
-<iframe id="player" width="100%" height="200"
-src="https://www.youtube.com/embed/jfKfPfyJRdk"></iframe>
-</div>
-
-</div>
-
-<script>
 const topics = [
-  {title:"Fundamentos",items:["UX","UI","Heurísticas"]},
-  {title:"Figma",items:["Frames","Auto Layout","Components"]},
-  {title:"Avançado",items:["Design System","Acessibilidade"]},
+  { title: "Fundamentos", items: ["UX", "UI", "Heurísticas", "Design Thinking"] },
+  { title: "Figma", items: ["Frames", "Auto Layout", "Components", "Prototyping"] },
+  { title: "Avançado", items: ["Design System", "Acessibilidade", "Microinterações"] },
+  { title: "Mercado", items: ["Portfólio", "Freelance", "Entrevistas"] }
 ];
 
-let state = JSON.parse(localStorage.getItem("study")) || {};
+export default function App() {
+  const [state, setState] = useState<Record<string, boolean>>({});
+  const [quiz, setQuiz] = useState("Clique para gerar");
+  const [video, setVideo] = useState("jfKfPfyJRdk");
+  const [xp, setXp] = useState(0);
 
-function save(){
-  localStorage.setItem("study",JSON.stringify(state));
-}
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem("study") || "{}");
+    setState(saved);
+  }, []);
 
-function render(){
-  let total=0,done=0;
-  let el=document.getElementById("content");
-  el.innerHTML="";
+  useEffect(() => {
+    localStorage.setItem("study", JSON.stringify(state));
+    const done = Object.values(state).filter(Boolean).length;
+    setXp(done * 20);
+  }, [state]);
 
-  topics.forEach((t,i)=>{
-    let card=document.createElement("div");
-    card.className="card";
-    let html=`<h2>${t.title}</h2>`;
+  const toggle = (key: string) => {
+    setState(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
-    t.items.forEach((it,j)=>{
-      let key=i+"-"+j;
+  const generateQuiz = () => {
+    let pool: string[] = [];
+
+    topics.forEach((t, i) => {
+      t.items.forEach((item, j) => {
+        if (!state[`${i}-${j}`]) pool.push(item);
+      });
+    });
+
+    const item = pool.length ? pool[Math.floor(Math.random() * pool.length)] : "UX";
+
+    const questions = [
+      `Explique ${item} como se fosse professor`,
+      `Como aplicar ${item} num projeto real?`,
+      `Quais erros comuns em ${item}?`,
+      `Por que ${item} é importante?`
+    ];
+
+    setQuiz(questions[Math.floor(Math.random() * questions.length)]);
+  };
+
+  const loadVideo = (url: string) => {
+    const id = url.split("v=")[1]?.split("&")[0];
+    if (id) setVideo(id);
+  };
+
+  let total = 0;
+  let done = 0;
+
+  topics.forEach((t, i) => {
+    t.items.forEach((_, j) => {
       total++;
-      if(state[key]) done++;
-
-      html+=`
-      <div class="item">
-        <span>${it}</span>
-        <button onclick="toggle('${key}')">
-          ${state[key]?"✔":"Estudar"}
-        </button>
-      </div>`;
-    });
-
-    card.innerHTML=html;
-    el.appendChild(card);
-  });
-
-  let percent = total ? (done/total)*100 : 0;
-  document.getElementById("progress").style.width=percent+"%";
-  document.getElementById("stats").innerText =
-    done+"/"+total+" ("+Math.round(percent)+"%)";
-}
-
-function toggle(key){
-  state[key]=!state[key];
-  save();
-  render();
-}
-
-function quiz(){
-  let list=[];
-  topics.forEach((t,i)=>{
-    t.items.forEach((it,j)=>{
-      let key=i+"-"+j;
-      if(!state[key]) list.push(it);
+      if (state[`${i}-${j}`]) done++;
     });
   });
 
-  let item=list.length?list[Math.floor(Math.random()*list.length)]:"UX";
+  const progress = total ? (done / total) * 100 : 0;
+  const level = Math.floor(xp / 100);
 
-  let q=[
-    "Explique "+item,
-    "Como usar "+item+"?",
-    "Por que "+item+" importa?"
-  ];
+  return (
+    <div className="min-h-screen bg-black text-white p-6">
+      <h1 className="text-4xl font-bold text-center mb-6">🚀 Study AI Ultra</h1>
 
-  document.getElementById("quiz").innerText =
-    q[Math.floor(Math.random()*q.length)];
+      <div className="w-full bg-gray-800 h-4 rounded-full mb-4">
+        <motion.div
+          className="bg-green-400 h-4 rounded-full"
+          animate={{ width: progress + "%" }}
+        />
+      </div>
+
+      <p className="text-center mb-6">{done}/{total} | XP: {xp} | Nível: {level}</p>
+
+      <div className="grid md:grid-cols-2 gap-4">
+        {topics.map((t, i) => (
+          <motion.div
+            key={i}
+            whileHover={{ scale: 1.05 }}
 }
-
-function loadYT(){
-  let url=document.getElementById("yt").value;
-  let id=url.split("v=")[1]?.split("&")[0];
-  if(id){
-    document.getElementById("player").src =
-      "https://www.youtube.com/embed/"+id;
-  }
-}
-
-render();
-
-if('serviceWorker' in navigator){
-  navigator.serviceWorker.register('sw.js');
-}
-</script>
-
-</body>
-</html>
