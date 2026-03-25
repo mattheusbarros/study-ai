@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Study AI</title>
+
+<link rel="manifest" href="manifest.json">
+
+<style>
+body {
+  margin:0;
+  font-family: Arial;
+  background: radial-gradient(circle at top,#020617,#000);
+  color:white;
+}
+.container {max-width:1000px;margin:auto;padding:20px}
+.card {
+  background:rgba(255,255,255,0.05);
+  padding:20px;
+  border-radius:15px;
+  margin-bottom:20px;
+}
+button {
+  background:#6366f1;
+  border:none;
+  color:white;
+  padding:6px 10px;
+  border-radius:8px;
+  cursor:pointer;
+}
+.progress-bar {
+  height:10px;
+  background:#111;
+  border-radius:10px;
+}
+.progress {
+  height:100%;
+  background:#22c55e;
+  width:0%;
+}
+.item {display:flex;justify-content:space-between;margin:5px 0}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>🚀 Study AI</h1>
+
+<div class="progress-bar"><div id="progress" class="progress"></div></div>
+<p id="stats"></p>
+
+<div id="content"></div>
+
+<div class="card">
+<h2>🧠 Quiz</h2>
+<p id="quiz">Clique abaixo</p>
+<button onclick="quiz()">Gerar</button>
+</div>
+
+<div class="card">
+<h2>🎧 Player YouTube</h2>
+<input id="yt" placeholder="Cole link do YouTube">
+<button onclick="loadYT()">Carregar</button>
+<iframe id="player" width="100%" height="200"
+src="https://www.youtube.com/embed/jfKfPfyJRdk"></iframe>
+</div>
+
+</div>
+
+<script>
+const topics = [
+  {title:"Fundamentos",items:["UX","UI","Heurísticas"]},
+  {title:"Figma",items:["Frames","Auto Layout","Components"]},
+  {title:"Avançado",items:["Design System","Acessibilidade"]},
+];
+
+let state = JSON.parse(localStorage.getItem("study")) || {};
+
+function save(){
+  localStorage.setItem("study",JSON.stringify(state));
+}
+
+function render(){
+  let total=0,done=0;
+  let el=document.getElementById("content");
+  el.innerHTML="";
+
+  topics.forEach((t,i)=>{
+    let card=document.createElement("div");
+    card.className="card";
+    let html=`<h2>${t.title}</h2>`;
+
+    t.items.forEach((it,j)=>{
+      let key=i+"-"+j;
+      total++;
+      if(state[key]) done++;
+
+      html+=`
+      <div class="item">
+        <span>${it}</span>
+        <button onclick="toggle('${key}')">
+          ${state[key]?"✔":"Estudar"}
+        </button>
+      </div>`;
+    });
+
+    card.innerHTML=html;
+    el.appendChild(card);
+  });
+
+  let percent = total ? (done/total)*100 : 0;
+  document.getElementById("progress").style.width=percent+"%";
+  document.getElementById("stats").innerText =
+    done+"/"+total+" ("+Math.round(percent)+"%)";
+}
+
+function toggle(key){
+  state[key]=!state[key];
+  save();
+  render();
+}
+
+function quiz(){
+  let list=[];
+  topics.forEach((t,i)=>{
+    t.items.forEach((it,j)=>{
+      let key=i+"-"+j;
+      if(!state[key]) list.push(it);
+    });
+  });
+
+  let item=list.length?list[Math.floor(Math.random()*list.length)]:"UX";
+
+  let q=[
+    "Explique "+item,
+    "Como usar "+item+"?",
+    "Por que "+item+" importa?"
+  ];
+
+  document.getElementById("quiz").innerText =
+    q[Math.floor(Math.random()*q.length)];
+}
+
+function loadYT(){
+  let url=document.getElementById("yt").value;
+  let id=url.split("v=")[1]?.split("&")[0];
+  if(id){
+    document.getElementById("player").src =
+      "https://www.youtube.com/embed/"+id;
+  }
+}
+
+render();
+
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('sw.js');
+}
+</script>
+
+</body>
+</html>
